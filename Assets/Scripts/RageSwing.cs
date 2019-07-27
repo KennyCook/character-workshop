@@ -2,71 +2,94 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class RageSwing : MonoBehaviour
+namespace CharacterWorkshop
 {
-    [SerializeField] private float _swingForce = 100f;
-    [SerializeField] private float _swingDamage = 40f;
-
-    private bool _swingInput = false;
-    private float _swingCooldown, _swingDuration;
-    private const float SWING_COOLDOWN = 0.8f;
-    private const float SWING_DURATION = 0.2f;
-
-    private BoxCollider _swingCollider;
-
-    private void Start()
+    public class RageSwing : MonoBehaviour
     {
-        _swingCooldown = _swingDuration = 0;
-        _swingCollider = GetComponent<BoxCollider>();
-    }
+        [SerializeField] private Animator _rightHand, _leftHand;
+        [SerializeField] private float _swingForce = 100f;
+        [SerializeField] private float _swingDamage = 40f;
 
-    private void Update()
-    {
-        if (_swingInput && _swingCooldown <= 0)
+        private bool _swingInput = false, _swingingRight = true;
+        private float _swingCooldown, _swingDuration;
+        private const float SWING_COOLDOWN = 0.8f;
+        private const float SWING_DURATION = 0.2f;
+
+        [SerializeField] private BoxCollider _swingCollider;
+
+        private void Start()
         {
-            _swingCollider.enabled = true;
-            _swingDuration = SWING_DURATION;
-            _swingCooldown = SWING_COOLDOWN;
+            _swingCooldown = _swingDuration = 0;
+            _swingCollider = GetComponent<BoxCollider>();
         }
 
-        if (_swingDuration <= 0)
+        private void Update()
         {
-            _swingCollider.enabled = false;
-        }
-
-        _swingDuration -= Time.deltaTime;
-        _swingCooldown -= Time.deltaTime;
-    }
-
-    public void Swing(bool value)
-    {
-        _swingInput = value;
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (_swingInput && other.gameObject.layer == LayerMask.NameToLayer("Enemy"))
-        {
-            other.GetComponent<Enemy>().TakeDamage(_swingDamage);
-            try
+            if (_swingInput && _swingCooldown <= 0)
             {
-                var forceVector = other.transform.position - GetComponentInParent<Transform>().position;
-                other.GetComponent<Rigidbody>().AddExplosionForce(_swingForce, GetComponentInParent<Transform>().position, 5f, 1.5f, ForceMode.Impulse);
-            }
-            catch (System.Exception e) { }
-        }
-    }
+                _swingCollider.enabled = true;
+                EnableSwingAnimation();
 
-    private void OnGUI()
-    {
-        if (_swingDuration > 0)
+                _swingDuration = SWING_DURATION;
+                _swingCooldown = SWING_COOLDOWN;
+            }
+
+            if (_swingDuration <= 0)
+            {
+                _swingCollider.enabled = false;
+            }
+
+            _swingDuration -= Time.deltaTime;
+            _swingCooldown -= Time.deltaTime;
+        }
+
+        public void Swing(bool value)
         {
-            //GUI.TextField(new Rect(0, 0, Screen.width / 2, Screen.height / 2), "SWING!");
-            GUI.TextField(new Rect(0, 0, 100, 50), "SWING!");
+            _swingInput = value;
+        }
+
+        private void EnableSwingAnimation()
+        {
+            if (_swingingRight)
+                _rightHand.Play("PrimalRageSwingRight", -1, 0f);
+            else
+                _leftHand.Play("PrimalRageSwingLeft", -1, 0f);
+
+            _swingingRight = !_swingingRight;
+        }
+
+        private void OnTriggerEnter(Collider other)
+        {
+            if (_swingInput && other.gameObject.layer == LayerMask.NameToLayer("Enemy"))
+            {
+                other.GetComponent<Enemy>().TakeDamage(_swingDamage);
+                try
+                {
+                    var forceVector = other.transform.position - GetComponentInParent<Transform>().position;
+                    other.GetComponent<Rigidbody>().AddExplosionForce(_swingForce, GetComponentInParent<Transform>().position, 5f, 1.5f, ForceMode.Impulse);
+                }
+                catch (System.Exception e) { }
+            }
+        }
+
+        private void OnGUI()
+        {
+            // Debug
+            if (_swingDuration > 0)
+            {
+                GUI.TextField(new Rect(0, 0, 100, 50), "SWING!");
+            }
+        }
+        
+        // Debug
+        [ExecuteInEditMode]
+        private void OnDrawGizmos()
+        {
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireCube((transform.position + _swingCollider.center), _swingCollider.size);
         }
     }
 }
-
 // isSwinging
 //      set by Winston
 // time between swings
@@ -77,3 +100,8 @@ public class RageSwing : MonoBehaviour
 //      reset after collider activated
 //      must be less than cooldown
 //      deactivate collider at 0
+
+/*
+ Try really small lifetimes, high burst for particles
+ Child hands to Held Item Camera
+*/
